@@ -16,5 +16,5 @@ Introducing the WhatsApp-based chatbot designed to streamline and simplify carbo
 - Cost-Effective: A cost-efficient alternative to hiring additional personnel or outsourcing reporting.
 - Environmental Impact: Simplifying reporting contributes to a company's broader sustainability efforts.
 
-📊 The Result:
+### 📊 The Result:
 EcoReportBot streamlines carbon emission reporting for EU Commission compliance, allowing organisations to focus on reducing their carbon footprint efficiently and accurately.
