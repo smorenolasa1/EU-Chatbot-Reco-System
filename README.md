@@ -73,8 +73,8 @@ User guides and technical documentation can be found here.
 - Adnan Bhanji: Project Manager
 - Beatrice Mossberg: Data Engineer
 - Riyad Mazari: Data Scientist
+- Sofia Morena Lasa: Data Scientist
 - Khaled Akel: Machine Learning Engineer
-- Sofia Morena Lasa: MLOps Engineer
 - Hussein Soliman: MLOps Engineer
 
 ### 🙏 Acknowledgments:
