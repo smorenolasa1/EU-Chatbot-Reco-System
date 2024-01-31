@@ -1,88 +1,47 @@
-# EU-Chatbot-Reco-System
+# Machine Learning project template
 
-### 🌍 The Challenge:
-Compliance with EU Commission environmental carbon emission reporting mandates can be a laborious process, prone to human error, and costly in terms of time and resources.
+The objective of this repository is to serve as a template for machine learning projects.
 
-### 🤖 The Solution:
-Introducing the WhatsApp-based chatbot designed to streamline and simplify carbon emission reporting, ensuring compliance with EU Commission standards.
+## Getting Started
 
-### 🔑 Key Features & Benefits:
-- **Dynamic Reporting**: Utilise Natural Language Processing (NLP) and AI to send and receive text messages via WhatsApp, which auto-populate the carbon emission report with real-time data.
-- **Efficiency**: Eliminate manual data entry and reduce reporting time significantly.
-- **User-Friendly**: No complex installations or training required; WhatsApp familiarity ensures ease of use.
-- **Accuracy & Compliance**: Ensure precise reporting to meet EU Commission requirements, minimising the risk of penalties.
-- **Real-Time Updates**: Receive notifications and alerts regarding reporting deadlines and regulatory changes.
-- **Cost-Effective**: A cost-efficient alternative to hiring additional personnel or outsourcing reporting.
-- **Environmental Impact**: Simplifying reporting contributes to a company's broader sustainability efforts.
+To set up the project, the easiest way is to copy the all the folders into an empty GitHub repository. Make sure you change the name of the library `miguellib`.
 
-### 🤝 Affected Stakeholders:
-- **Organizations and Businesses**: Companies subject to EU carbon emission reporting mandates benefit from efficient and accurate reporting, reducing compliance risks.
-- **Regulatory Authorities**: EU Commission and national environmental agencies benefit from improved data collection and compliance verification.
-- **Environmental Advocacy Groups**: Organizations focused on sustainability appreciate efforts to reduce carbon emissions and improve reporting accuracy.
-- **Investors and Shareholders**: Increased reporting accuracy enhances investor confidence and supports sustainability goals.
-- **Environmental Consultants and Auditors**: These experts see value in a tool that streamlines reporting processes and enhances accuracy.
+## Structure
 
-### 🛠️ Technology Stack:
-- Programming Languages: Python
-- Frameworks: Flask
-- Natural Language Processing Libraries: NLTK, Huggingface, Langchain
-- Database: PostgreSQL
-- Messaging Platform: WhatsApp API
-- Machine Learning: 
-- Data Visualization: Matplotlib
+- .github: CI/CD with GitHub Actions. It runs the tests every time there is a pull request to the repository.
+- docs: Documentation of the project.
+- examples: Jupyter notebooks with machine learning experiments. Here is where you would do data exploration, try different machine learning models, etc.
+- miguellib: Libraries with common functions that you use in the project. 
+- tests: Python tests of the libraries.
 
-### 🧠 Methodology:
-Our approach involves:
+## Setup
 
-- Data collection from various sources, including public agricultural ministry datasets and internal databases.
-- Training and fine-tuning NLP models for text analysis.
-- Developing a chatbot using Python and Flask, including defining user flow and minimizing questions asked until report is filled. 
-- Integration with WhatsApp API for user interaction.
+    pip install -e .
+    python -c "import miguellib; print(miguellib.__version__)"
 
-### 📚 Data Sources:
-We collect data from:
-- Public agricultural ministry datasets
-- EU Commission guidelines and datasets.
-- Internal databases from user intraction
+## Coding Principles
 
+Next there are a few coding principles that I follow when working on machine learning projects.
 
-### 🚀 Implementation Details:
-The chatbot is implemented using Flask and integrated with the WhatsApp API to enable real-time reporting. NLP models are used to analyze text messages and auto-populate reports.
+### Start from something that works
 
-### 🧪 Testing and Validation:
-The chatbot was rigorously tested against various reporting scenarios, and validation was performed to ensure it meets EU Commission standards for accuracy and compliance.
+Here is one of the most practical tips I know about working on machine learning. **Instead of starting from scratch, start with something that works and adapt it to your problem.**
 
-### 📈 Results and Metrics:
-The EcoReportBot has reduced reporting time and improved accuracy to ensure compliance with EU Commission mandates. Key metrics include response time and user satisfaction.
+For example, let's say you want to build a recommendation system with data from your company. What I would do is something as simple as this:
 
-### 💡 Lessons Learned:
+1. Go to [Recommenders](https://github.com/recommenders-team/recommenders) and look at an example that a similar dataset structure and compute. For example, if your data is text-based and you want to use GPU, explore the examples of LSTUR or NPA.
+2. Install the dependencies and run the example. Make sure that it works.
+3. Change the data of the example to your data. If your data is different or more extensive, just forget about it and use the part of your data that is similar to the example. Make sure that it works.
+4. Change the code to adapt it to your specific data and problem.
 
-### 📆 Future Enhancements:
-In the future, we plan to:
+### Notebooks that call a library
 
-- Expand language support.
-- Incorporate advanced AI features for predictive analysis.
-- Develop a mobile app for accessibility.
-- Enhance reporting visualization.
+One of the main differences between a professional and an amateur machine learning project is this. Don't put your functions and classes in the notebooks, instead, create libraries and call them from the notebooks. This is the only way to reuse your code and make it scalable. 
 
-### 📄 Documentation:
-User guides and technical documentation can be found here.
+Most of the time, notebooks are not deployed, they are used for experimentation and visualization. You deploy the libraries. In addition, if you create libraries, you can test them.
 
-### 👥 The Team:
+### Why tests are important?
 
-- Adnan Bhanji: Project Manager
-- Beatrice Mossberg: Data Engineer
-- Riyad Mazari: Data Scientist
-- Sofia Morena Lasa: Data Scientist
-- Khaled Akel: Machine Learning Engineer
-- Hussein Soliman: MLOps Engineer
+Tests solve one of the most expensive problems in development: maintenance. The way I see testing is like the immune system of your project. It protects your project from bugs and errors and makes sure your project is healthy. 
 
-### 🙏 Acknowledgments:
-We would like to express our gratitude to our mentors, collaborators, and data providers who contributed to the success of this project.
-
-### 📜 Appendix:
-For additional code snippets, data samples, and graphs, please refer to the appendix.
-
-
-
-
+A strong test pipeline minimizes maintenance. It is one of the best investments you can do in your project, because it will avoid new buggy code in the project, and it will detect breaking changes when using dependencies.
