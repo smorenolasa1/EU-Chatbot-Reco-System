@@ -45,6 +45,7 @@ We collect data from:
 - EU Commission guidelines and datasets.
 - Internal databases from user intraction
 
+Fake Template Report: https://drive.google.com/file/d/1YsBcwr6d59_d4rpqOVz3nuBYTawpmfz9/view?usp=sharing
 
 ### 🚀 Implementation Details:
 The chatbot is implemented using Flask and integrated with the WhatsApp API to enable real-time reporting. NLP models are used to analyze text messages and auto-populate reports.
