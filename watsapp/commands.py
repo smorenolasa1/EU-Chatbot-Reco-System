@@ -4,8 +4,15 @@ from   config import *
 import openai
 import logging
 from openai.error import RateLimitError
+from config import vonage_sandbox_number, vonage_authorization_header, endpoint_vonage_message_send
+from datetime import datetime
+user_states = {}
+user_info = {}
+
+
 user_sessions = {}
 logging.basicConfig(format='%(message)s', level=logging.INFO)
+
 
 def help(req_data):
     msg = "Ask me anything..."
@@ -13,12 +20,34 @@ def help(req_data):
     return msg
 
 
+
+
+
+
+
+
 def chatgpt_text(req_data):
-    question = str(req_data['text']).upper().strip()
+    question = str(req_data['text']).strip()  # Removed upper() for case sensitivity
     destination_number = req_data['from']
-    logging.info(f"question recieved: {question}")
-    msg = ""
-    if question.split()[0] == "IMAGE":
+    logging.info(f"question received: {question}")
+
+
+    # Check if the user is starting the registration or report flow
+    if question.lower() == "start registration":
+        user_states[destination_number] = 'registration'
+        return start_registration_flow(destination_number)
+    elif question.lower() == "start report":
+        user_states[destination_number] = 'report'
+        return start_report_flow(destination_number)
+   
+    # If user is in a specific state, continue that flow
+    if destination_number in user_states:
+        if user_states[destination_number] == 'registration':
+            return continue_registration_flow(destination_number, question)
+        elif user_states[destination_number] == 'report':
+            return continue_report_flow(destination_number, question)
+   
+    elif question.split()[0] == "IMAGE":
         imgurl = imagebot(req_data)
         logging.info(f"sending reply: {imgurl}")
         send_whatsapp_img(destination_number, imgurl, caption=question)
@@ -36,9 +65,39 @@ def chatgpt_text(req_data):
         send_whatsapp_msg(destination_number, msg)
 
 
+def start_registration_flow(destination_number):
+    send_whatsapp_msg(destination_number, "What's your full name?")
+    return "Asked for user's full name."
+
+
+def continue_registration_flow(destination_number, message):
+    if 'name' not in user_info.get(destination_number, {}):
+        user_info[destination_number] = {'name': message}
+        send_whatsapp_msg(destination_number, "Where is your farm located? Please provide the address or GPS coordinates.")
+        return "Asked for farm location."
+    elif 'location' not in user_info[destination_number]:
+        user_info[destination_number]['location'] = message
+        send_whatsapp_msg(destination_number, "How large is your farm? Please specify in hectares.")
+        return "Asked for farm size."
+    elif 'size' not in user_info[destination_number]:
+        user_info[destination_number]['size'] = message
+        # Here you could confirm the information with the user or save it to a database
+        user_states.pop(destination_number, None)  # Clear the user state
+        return "Registration complete."
+
+
+def start_report_flow(destination_number):
+    send_whatsapp_msg(destination_number, "It is time to report your farm's carbon emissions for the year.")
+    return "Asked to start yearly report."
+
+def continue_report_flow(destination_number, question):
+    pass
+
 def no_text_field(req_data):
     logging.info("Invalid command.")
     pass
+
+
 
 
 def hello_vonage_ai(req_data):
@@ -62,6 +121,8 @@ def hello_vonage_ai(req_data):
     return msg
 
 
+
+
 def get_advice_vonage_ai(req_data):
     recipient = req_data['from']['number']
     symbol = str(req_data['message']['content']['text']).upper().strip().split()[-1]
@@ -76,34 +137,34 @@ def get_advice_vonage_ai(req_data):
     logging.info(f"{msg}")
     return msg
 
+
 def send_msg(channel, recipient, msg):
     if channel == "whatsapp":
         send_whatsapp_msg(recipient, msg)
-    elif channel == "viber_service_msg":
-        send_viber_msg(recipient, msg)
-    elif channel == "messenger":
-        send_messenger_msg(recipient, msg)
+
+
 
 
 def send_whatsapp_img(destination_number, imgurl, caption="image"):
-    payload = json.dumps({
-    "message_type": "image",
-    "image": {
-        "url": imgurl,
-        "caption": caption
-    },
-    "to": destination_number,
-    "from": vonage_sandbox_number,
-    "channel": "whatsapp"
-    })
-    headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Authorization': vonage_authorization_header
+    payload = {
+        "message_type": "image",
+        "to": destination_number,
+        "from": vonage_sandbox_number,
+        "channel": "whatsapp",
+        "image": {
+            "url": imgurl,
+            "caption": caption
+        }
     }
-
-    response = requests.request("POST", endpoint_vonage_message_sandbox, headers=headers, data=payload)
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': vonage_authorization_header
+    }
+    response = requests.post(endpoint_vonage_message_send, headers=headers, data=json.dumps(payload))
+    print(response.text)  # Adding print to debug API response
     return response.text
+
+
 
 
 def send_whatsapp_msg(destination_number, msg):
@@ -120,60 +181,9 @@ def send_whatsapp_msg(destination_number, msg):
     'Authorization': vonage_authorization_header
     }
 
+
     response = requests.request("POST", endpoint_vonage_message_send, headers=headers, data=payload)
     return response.text
-
-
-def send_messenger_msg(recipient, msg):
-    payload = json.dumps({
-        "from": {
-            "type": "messenger",
-            "id": "107083064136738"
-        },
-        "to": {
-            "type": "messenger",
-            "id": recipient
-        },
-        "message": {
-            "content": {
-                "type": "text",
-                "text": msg
-            }
-        }
-    })
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': vonage_authorization_header
-    }
-    response = requests.request("POST", endpoint_vonage_message_sandbox, headers=headers, data=payload)
-    logging.info(response.text)
-
-
-def send_viber_msg(recipient, msg):
-    payload = json.dumps({
-        "from": {
-            "type": "viber_service_msg",
-            "id": "16273"
-        },
-        "to": {
-            "type": "viber_service_msg",
-            "number": recipient
-        },
-        "message": {
-            "content": {
-                "type": "text",
-                "text": msg
-            }
-        }
-    })
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': vonage_authorization_header
-    }
-    response = requests.request("POST", endpoint_vonage_message_sandbox, headers=headers, data=payload)
-    logging.info(response.text)
 
 
 def chatbot(req_data):
@@ -192,6 +202,8 @@ def chatbot(req_data):
         messages.append({"role": "assistant", "content": reply})
         logging.info(f"answer recieved: {reply}")
         return reply
+
+
 
 
 def imagebot(req_data):
@@ -213,10 +225,9 @@ def imagebot(req_data):
         image_url = "http://khan2a.com:8080/get_image?name=meme.jpg"
     return image_url
 
+
 command_set = {'CHATGPT_TEXT': chatgpt_text,
                'no_text_field': no_text_field,
                'HELP': help,
                'HELLO': hello_vonage_ai,
                'SEND': get_advice_vonage_ai}
-
-
