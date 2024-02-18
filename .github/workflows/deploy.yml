@@ -13,10 +13,16 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v1
       with:
-        node-version: '14'
+        node-version: '16'
     - name: Install Dependencies
       run: npm install
     - name: Deploy Contracts to Network
       run: npx truffle migrate --network mumbai
+      env:
+        INFURA_PROJECT_ID: ${{ secrets.INFURA_PROJECT_ID }}
+        MNEMONIC: ${{ secrets.MNEMONIC }}
     - name: Extract Contract Details
       run: bash ./scripts/extract_contract_details.sh
+
+            
+      
