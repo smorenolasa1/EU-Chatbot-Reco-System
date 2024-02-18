@@ -53,31 +53,57 @@ def continue_registration_flow(destination_number, message):
             return "Invalid farm"
 
 
+def is_valid_number(input_str):
+    try:
+        # Convert to float to accept integers and decimal numbers
+        float(input_str)
+        return True
+    except ValueError:
+        return False
+
 def continue_report_flow(destination_number, message):
     if 'name' not in user_info.get(destination_number, {}):
         if message.isalpha() or ' ' in message:  # Simple check for a valid name
             user_info[destination_number] = {'name': message}
-            send_whatsapp_msg(destination_number, "Where is your farm located? Please provide the address or GPS coordinates.")
-            return "Asked for farm location."
+            send_whatsapp_msg(destination_number, "It is time to report your farm's carbon emissions for the year. Which emission source are you reporting? Poll: - Livestock - Machinery")
+            return "Asked for emission source."
         else:
             send_whatsapp_msg(destination_number, "Invalid name. Please enter a valid full name.")
             return "Invalid name provided."
 
-    elif 'location' not in user_info[destination_number]:
-        # No specific validation for location as it could be an address or GPS coordinates
-        user_info[destination_number]['location'] = message
-        send_whatsapp_msg(destination_number, "How large is your farm? Please specify in hectares.")
-        return "Asked for farm size."
-
-    elif 'size' not in user_info[destination_number]:
-        if message.replace('.', '', 1).isdigit():  # Check if it's a positive number, possibly a float
-            user_info[destination_number]['size'] = message
-            send_whatsapp_msg(destination_number, f"Please review your information: Name - {user_info[destination_number]['name']}, Location - {user_info[destination_number]['location']}, Size - {message} hectares. Is this correct?")
-            user_states.pop(destination_number, None)  # Clear the user state
-            return "Asked for confirmation of registration info."
+    elif 'emission_source' not in user_info[destination_number]:
+        if message.lower() in ['livestock', 'machinery']:
+            user_info[destination_number]['emission_source'] = message.lower()
+            send_whatsapp_msg(destination_number, "Enter the quantity of emission source (in kg of CO2 equivalent).")
+            return "Asked for emission quantity."
         else:
-            send_whatsapp_msg(destination_number, "Invalid farm size. Please enter a valid number in hectares.")
-            return "Invalid farm"
+            send_whatsapp_msg(destination_number, "Invalid emission source. Please choose between Livestock and Machinery.")
+            return "Invalid emission source provided."
+
+    elif 'emission_quantity' not in user_info[destination_number]:
+        if is_valid_number(message):
+            user_info[destination_number]['emission_quantity'] = message
+            send_whatsapp_msg(destination_number, f"Confirm submission: {user_info[destination_number]['emission_source'].capitalize()} - {message} kg CO2 eq. Correct?")
+            return "Asked for confirmation of emission quantity."
+        else:
+            send_whatsapp_msg(destination_number, "Invalid quantity. Please enter the quantity of emission source in kg of CO2 equivalent.")
+            return "Invalid emission quantity provided."
+
+    elif 'confirmation' not in user_info[destination_number]:
+        if message.lower() in ['yes', 'correct']:
+            user_info[destination_number]['confirmation'] = True
+            send_whatsapp_msg(destination_number, "Thanks! Any other sources to report today?")
+            return "Asked if there are more sources to report."
+        else:
+            send_whatsapp_msg(destination_number, "Information not confirmed. Please start over.")
+            user_info.pop(destination_number, None)  # Clear the user info to restart the process
+            return "Restarting the process."
+
+# Placeholder for the user_info dictionary where we store user's information.
+user_info = {}
+
+# Placeholder for user_states dictionary to maintain the state of each user in the conversation.
+user_states = {}
 
 
 # Helper function to validate emission quantity
