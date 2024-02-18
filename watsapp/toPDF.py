@@ -15,7 +15,7 @@ def create_pdf_from_string(input_string, output_filename="output.pdf"):
     pdf.add_page()
 
     # Set the font (you can choose other fonts too)
-    pdf.set_font("Arial", size=15)
+    pdf.set_font("Times", size=11)
 
     # Add the input string to the PDF
     pdf.multi_cell(0, 10, txt=input_string, align="L")
@@ -28,65 +28,66 @@ def create_pdf_from_string(input_string, output_filename="output.pdf"):
 # Example usage
 farm_information_template = """
 Farm Information:
-- Farm's name: {farm_name}
-- Owner/Manager's name: {owner_name}
-- Location: {location}
-- Total farm area (hectares): {farm_area}
-- Number of dairy cows: {num_cows}
-- Type of dairy production system: {production_system}
+
+Farm's name: {farm_name}
+Owner/Manager's name: {owner_name}
+Location: {location}
+Total farm area (hectares): {farm_area}
+Number of dairy cows: {num_cows}
+Type of dairy production system: {production_system}
 
 Section 1:
-- Enteric fermentation:
-  - Total methane emissions (kg CO2-eq): {methane_emissions}
-  - Calculation method/model used: {methane_calculation}
+Enteric fermentation:
+Total methane emissions (kg CO2-eq): {methane_emissions}
+Calculation method/model used: {methane_calculation}
 
 Section 2:
-- Manure management:
-  - Methane emissions from manure management: {manure_methane_emissions}
-  - Nitrous oxide emissions from manure management: {manure_nitrous_emissions}
-  - Manure management system: {manure_system}
-  - Calculation method/model used: {manure_calculation}
+Manure management:
+Methane emissions from manure management: {manure_methane_emissions}
+Nitrous oxide emissions from manure management: {manure_nitrous_emissions}
+Manure management system: {manure_system}
+Calculation method/model used: {manure_calculation}
 
 Section 3:
-- Feed production:
-  - CO2 emissions from feed production: {feed_co2_emissions}
-  - Feed type: {feed_type}
-  - Quantity (tons): {feed_quantity}
-  - Source: {feed_source}
-  - Calculation method/model used: {feed_calculation}
+Feed production:
+CO2 emissions from feed production: {feed_co2_emissions}
+Feed type: {feed_type}
+Quantity (tons): {feed_quantity}
+Source: {feed_source}
+Calculation method/model used: {feed_calculation}
 
 Section 4:
-- Energy use on the farm:
-  - Electricity consumption (kWh): {electricity_consumption}
-  - Fuel consumption (L/m3): {fuel_consumption}
-  - Fuel type: {fuel_type}
-  - Total CO2 emissions from energy use: {energy_co2_emissions}
-  - Calculation method/model used: {energy_calculation}
+Energy use on the farm:
+Electricity consumption (kWh): {electricity_consumption}
+Fuel consumption (L/m3): {fuel_consumption}
+Fuel type: {fuel_type}
+Total CO2 emissions from energy use: {energy_co2_emissions}
+Calculation method/model used: {energy_calculation}
 
 Section 5:
-- Land use, land-use change, and forestry (LULUCF):
-  - Changes in land use: {land_use_changes}
-  - CO2 sequestration or emissions due to LULUCF: {lulucf_co2}
-  - Description of land use change: {land_use_description}
-  - Calculation method/model used: {lulucf_calculation}
+Land use, land-use change, and forestry (LULUCF):
+Changes in land use: {land_use_changes}
+CO2 sequestration or emissions due to LULUCF: {lulucf_co2}
+Description of land use change: {land_use_description}
+Calculation method/model used: {lulucf_calculation}
 
 Section 6:
-- Additional emissions and offsets:
-  - Other GHG emissions: {other_emissions_source}, {other_emissions_quantity}
-  - Carbon credits or offsets purchased: {carbon_credits_source}, {carbon_credits_quantity}
+Additional emissions and offsets:
+Other GHG emissions: {other_emissions_source}, {other_emissions_quantity}
+Carbon credits or offsets purchased: {carbon_credits_source}, {carbon_credits_quantity}
 
 Summary of total GHG emissions:
-- Enteric fermentation: {enteric_fermentation_total}
-- Manure management: {manure_management_total}
-- Feed production: {feed_production_total}
-- Energy use on the farm: {energy_use_total}
-- LULUCF: {lulucf_total}
-- Other sources: {other_sources_total}
+Enteric fermentation: {enteric_fermentation_total}
+Manure management: {manure_management_total}
+Feed production: {feed_production_total}
+Energy use on the farm: {energy_use_total}
+LULUCF: {lulucf_total}
+Other sources: {other_sources_total}
 
 Declaration:
-- Statement of accuracy and truthfulness: [Signature]
-- Date: {declaration_date}
-- Compliance with EU greenhouse gas emissions reporting requirements for dairy farms: {eu_compliance}
+Statement of accuracy and truthfulness: [Signature]
+Date: {declaration_date}
+Compliance with EU greenhouse gas emissions reporting requirements for dairy farms: {eu_compliance}
 """
 
 # Example variables
