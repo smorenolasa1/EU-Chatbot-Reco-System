@@ -1,0 +1,22 @@
+name: Deploy Contracts and Update Config
+
+on:
+  push:
+    branches:
+      - polygon-storage
+
+jobs:
+  deploy_and_update:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: '14'
+    - name: Install Dependencies
+      run: npm install
+    - name: Deploy Contracts to Network
+      run: npx truffle migrate --network mumbai
+    - name: Extract Contract Details
+      run: bash ./scripts/extract_contract_details.sh

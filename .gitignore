@@ -1,0 +1,15 @@
+# Dependency directories
+node_modules/
+
+# Environment variable files
+.env
+
+# Truffle build artifacts
+build/
+
+# macOS system files
+.DS_Store
+
+# Truffle and Ganache local files
+truffle-config.js
+ganache-db/
