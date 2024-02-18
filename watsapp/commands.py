@@ -65,7 +65,7 @@ def continue_report_flow(destination_number, message):
     if 'name' not in user_info.get(destination_number, {}):
         if message.isalpha() or ' ' in message:  # Simple check for a valid name
             user_info[destination_number] = {'name': message}
-            send_whatsapp_msg(destination_number, "It is time to report your farm's carbon emissions for the year. Which emission source are you reporting? Poll: - Livestock - Machinery")
+            send_whatsapp_msg(destination_number, "Which emission source are you reporting? Poll: - Livestock - Machinery")
             return "Asked for emission source."
         else:
             send_whatsapp_msg(destination_number, "Invalid name. Please enter a valid full name.")
