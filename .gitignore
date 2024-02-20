@@ -13,3 +13,5 @@ build/
 # Truffle and Ganache local files
 truffle-config.js
 ganache-db/
+
+config/contractDetails.json
