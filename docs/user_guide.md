@@ -16,6 +16,7 @@ Detailed instructions on how to interact with the chatbot, including examples.
       - Once you sign up to Vonage, go to API Dashboard --> Deveolper Tools --> and Message Sandbox.
       - Then scan the QR code and send the passphrase given to that number in whatsapp.
       - Then, after you downloaded ngrok, co to your cmd and type ngrok to make sure it works.
+      - Make an account on https://dashboard.ngrok.com/signup
       - After, type ngrok http 8080: This will give you a forwarding URL that ends with free.app.
       - Copy that link, and go back to your vonage account, and paste it on the message sandbox, where it says webhooks on the inbound box. On the Status box, paste the same link, and on the end put "/wastatus". 
       - Finally, save the webhooks.
