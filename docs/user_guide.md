@@ -26,7 +26,7 @@ Detailed instructions on how to interact with the chatbot, including examples.
       - Next, go to config.py and paste that authorization_header in the vonage_authorization_header.
       - Then, go to OpenAI(https://platform.openai.com/api-keys), and create an OpenAI API Key(make sure this key has credit, otherwise it will give you an error saying there is a problem with your OpenAI API Key).
       -  After, in the vonage_sandbox_number, input the number you sent the passphrase to in whatsapp(the vonage number). You should input this number without the + sign. E.g., 14157386102.
-      -  Then, go to the commands.py, and in this part of the code: elif question != "JOIN LINT MUSIC", replace "JOIN LINT MUSIC" with your passphrase.
+      -  Then, go to the commands.py, and in this part of the code: elif question != "JOIN LINT MUSIC", replace "JOIN LINT MUSIC" with your passphrase in all caps.
       -  Finally, save this.
   6) Next to run the code, you should enter these commands:
       - Remove-Item -Recurse -Force .\env\
