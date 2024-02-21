@@ -50,31 +50,38 @@ def process_message(req_data):
     destination_number = req_data['from']
     message = req_data['text'].strip()
 
-    if message.lower() == 'start report':
-        user_info[destination_number] = {}
-        user_states[destination_number] = 'farm_name'
-        send_whatsapp_msg(destination_number, questions_dict['farm_name'])
-    elif destination_number in user_states:
-        if is_question(message):
-            response = chatbot(message, destination_number)
-            send_whatsapp_msg(destination_number, response)
-            # Re-ask the last question
-            last_question_key = user_states[destination_number]
+    # Check if the user is asking a question to ChatGPT
+    if message.endswith('?'):
+        response = chatbot(req_data, destination_number)  # Get response from ChatGPT
+        send_whatsapp_msg(destination_number, response)
+    elif message.lower() == 'solved':
+        # Resume to the last question of the report if "solved" is input
+        last_question_key = user_states.get(destination_number, None)
+        if last_question_key:
             send_whatsapp_msg(destination_number, questions_dict[last_question_key])
         else:
-            handle_response(destination_number, message)
+            send_whatsapp_msg(destination_number, "You can start the report by typing 'start report'.")
+    elif message.lower() == 'start report':
+        user_info[destination_number] = {}
+        user_states[destination_number] = questions[0][0]  # Start with the first question
+        send_whatsapp_msg(destination_number, questions_dict[questions[0][0]])
     else:
-        send_whatsapp_msg(destination_number, "Please start the report by typing 'start report'.")
+        # Continue with the report filling process
+        if destination_number in user_states:
+            handle_response(destination_number, message)
+        else:
+            send_whatsapp_msg(destination_number, "Please start the report by typing 'start report'.")
 
 def handle_response(destination_number, message):
-    current_question = user_states[destination_number]
-    if current_question == 'farm_name' and not is_valid_name(message):
-        send_whatsapp_msg(destination_number, "Please enter a valid name for your farm.")
-    elif current_question == 'farm_area' and not is_valid_number(message):
+    current_question_index = questions.index((user_states[destination_number], questions_dict[user_states[destination_number]]))
+    
+    if not is_valid_number(message) and user_states[destination_number] == 'farm_area':
         send_whatsapp_msg(destination_number, "Please enter a valid number for the farm area.")
+    elif not is_valid_name(message) and user_states[destination_number] == 'farm_name':
+        send_whatsapp_msg(destination_number, "Please enter a valid name for your farm.")
     else:
-        user_info[destination_number][current_question] = message
-        next_question_index = questions.index((current_question, questions_dict[current_question])) + 1
+        user_info[destination_number][user_states[destination_number]] = message
+        next_question_index = current_question_index + 1
         if next_question_index < len(questions):
             next_question_key = questions[next_question_index][0]
             user_states[destination_number] = next_question_key
@@ -191,9 +198,9 @@ def send_whatsapp_msg(destination_number, msg):
 
 
 
-def chatbot(req_data):
-    question = str(req_data['text']).strip()  # Keep the original text case
-    recipient = req_data['from']
+def chatbot(req_data, destination_number):
+    question = str(req_data['text']).strip()  # Assuming req_data is a dictionary that contains the message text
+    recipient = destination_number
     openai.api_key = openai_key
     
     try:
@@ -241,16 +248,20 @@ def chatgpt_text(req_data):
     destination_number = req_data['from']
     logging.info(f"Question received: {question}")
 
-    # Check if the user is initiating or already in the report flow
+    # Construct the dictionary expected by chatbot
+    chatbot_req_data = {
+        'text': question,  # Or however you need to structure this according to chatbot's implementation
+        'from': destination_number
+    }
+
+    # Now call chatbot with the correctly structured single argument
     if question.lower() == "start report" or destination_number in user_states:
-        process_message(req_data)  # This will handle both starting and continuing the report flow
-    # Handle image requests
+        process_message(chatbot_req_data)
     elif question.split()[0].upper() == "IMAGE":
-        imgurl = imagebot(req_data)  # Make sure this function is properly defined elsewhere in your code
+        imgurl = imagebot(chatbot_req_data)
         logging.info(f"Sending reply: {imgurl}")
-        send_whatsapp_img(destination_number, imgurl, caption=question)  # Make sure this function is properly defined
-    # Handle the joining message or any other predefined commands
-    elif question.upper() == "JOIN DENIM FLAME":
+        send_whatsapp_img(destination_number, imgurl, caption=question)
+    elif question.upper() == "JOIN POUCH FOLIC":
         welcome_msg = (
             "Welcome to ChatGPT powered by Vonage Messaging API.\n"
             "To get more information about using this service, type *help*.\n"
@@ -262,7 +273,7 @@ def chatgpt_text(req_data):
         send_whatsapp_msg(destination_number, welcome_msg)
     # If none of the above, assume it is a general question and proceed with ChatGPT
     else:
-        chat_response = chatbot(question, destination_number)  # Make sure this function is properly defined
+        chat_response = chatbot(chatbot_req_data, destination_number)  # Corrected call to chatbot
         logging.info(f"Sending reply: {chat_response}")
         send_whatsapp_msg(destination_number, chat_response)
 
