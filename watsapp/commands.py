@@ -6,159 +6,99 @@ import logging
 from openai.error import RateLimitError
 from config import vonage_sandbox_number, vonage_authorization_header, endpoint_vonage_message_send
 from datetime import datetime
+from toPDF import create_pdf_from_string
 
+
+# Configuration and initial setup
+from config import *
+logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 user_info = {}
-user_sessions = {}
 user_states = {}
-logging.basicConfig(format='%(message)s', level=logging.INFO)
+
+# Define the questions for the report flow
+questions = [
+    ('farm_name', "What's the name of your farm?"),
+    ('location', "Where is your farm located? Please provide the address or GPS coordinates."),
+    ('farm_area', "How large is your farm? Please specify in hectares."),
+    # Add more questions as needed
+]
+
+# Define the questions dictionary for easy lookup
+questions_dict = {q[0]: q[1] for q in questions}
 
 def help(req_data):
     msg = "Ask me anything..."
     logging.info(msg)
     return msg
 
+def is_valid_name(name):
+    return name.replace(' ', '').isalpha()
 
-
-def start_registration_flow(destination_number):
-    user_states[destination_number] = 'registration'
-    send_whatsapp_msg(destination_number, "What's your full name?")
-    return "Asked for user's full name."
-
-
-def continue_registration_flow(destination_number, message):
-    if 'name' not in user_info.get(destination_number, {}):
-        if message.isalpha() or ' ' in message:  # Simple check for a valid name
-            user_info[destination_number] = {'name': message}
-            send_whatsapp_msg(destination_number, "Where is your farm located? Please provide the address or GPS coordinates.")
-            return "Asked for farm location."
-        else:
-            send_whatsapp_msg(destination_number, "Invalid name. Please enter a valid full name.")
-            return "Invalid name provided."
-
-    elif 'location' not in user_info[destination_number]:
-        # No specific validation for location as it could be an address or GPS coordinates
-        user_info[destination_number]['location'] = message
-        send_whatsapp_msg(destination_number, "How large is your farm? Please specify in hectares.")
-        return "Asked for farm size."
-
-    elif 'size' not in user_info[destination_number]:
-        if message.replace('.', '', 1).isdigit():  # Check if it's a positive number, possibly a float
-            user_info[destination_number]['size'] = message
-            send_whatsapp_msg(destination_number, f"Please review your information: Name - {user_info[destination_number]['name']}, Location - {user_info[destination_number]['location']}, Size - {message} hectares. Is this correct?")
-            user_states.pop(destination_number, None)  # Clear the user state
-            return "Asked for confirmation of registration info."
-        else:
-            send_whatsapp_msg(destination_number, "Invalid farm size. Please enter a valid number in hectares.")
-            return "Invalid farm"
-
-
-def is_valid_number(input_str):
+def is_valid_number(number):
     try:
-        # Convert to float to accept integers and decimal numbers
-        float(input_str)
+        float(number)
         return True
     except ValueError:
         return False
+
+def is_question(text):
+    return text.strip().endswith('?')
+
+
+def process_message(req_data):
+    destination_number = req_data['from']
+    message = req_data['text'].strip()
+
+    if message.lower() == 'start report':
+        user_info[destination_number] = {}
+        user_states[destination_number] = 'farm_name'
+        send_whatsapp_msg(destination_number, questions_dict['farm_name'])
+    elif destination_number in user_states:
+        if is_question(message):
+            response = chatbot(message, destination_number)
+            send_whatsapp_msg(destination_number, response)
+            # Re-ask the last question
+            last_question_key = user_states[destination_number]
+            send_whatsapp_msg(destination_number, questions_dict[last_question_key])
+        else:
+            handle_response(destination_number, message)
+    else:
+        send_whatsapp_msg(destination_number, "Please start the report by typing 'start report'.")
+
+def handle_response(destination_number, message):
+    current_question = user_states[destination_number]
+    if current_question == 'farm_name' and not is_valid_name(message):
+        send_whatsapp_msg(destination_number, "Please enter a valid name for your farm.")
+    elif current_question == 'farm_area' and not is_valid_number(message):
+        send_whatsapp_msg(destination_number, "Please enter a valid number for the farm area.")
+    else:
+        user_info[destination_number][current_question] = message
+        next_question_index = questions.index((current_question, questions_dict[current_question])) + 1
+        if next_question_index < len(questions):
+            next_question_key = questions[next_question_index][0]
+            user_states[destination_number] = next_question_key
+            send_whatsapp_msg(destination_number, questions_dict[next_question_key])
+        else:
+            generate_and_send_report(destination_number)
+
+            
+
+def generate_and_send_report(destination_number):
+    report_content = create_report_content(user_info[destination_number])
+    pdf_filename = f"{destination_number}_report_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+    create_pdf_from_string(report_content, pdf_filename)
+    # Send the PDF report or provide a download link
+    send_whatsapp_msg(destination_number, "Your report has been generated. Please download it from [link].")
+    # Clean up after sending the report
+    user_info.pop(destination_number, None)
+    user_states.pop(destination_number, None)
     
-def write_to_json_file(data, file_name):
-    with open(file_name, 'w') as json_file:
-        json.dump(data, json_file, indent=4)
-        
-def start_report_flow(destination_number):
-    user_states[destination_number] = 'report'
-    send_whatsapp_msg(destination_number, "It is time to report your farm's carbon emissions for the year.")
-    return "Asked to start yearly report."
-
-
-def continue_report_flow(destination_number, message):
-    # Check if the user is asking a question
-    if '?' in message:
-        # Redirect to chatbot for questions and send the response back to the user
-        response = chatbot({'text': message, 'from': destination_number})
-        send_whatsapp_msg(destination_number, response)
-        # Now, check if there is a pending question in the user's state and re-ask it
-        if user_states.get(destination_number) == 'asking_emission_source':
-            send_whatsapp_msg(destination_number, "Which emission source are you reporting? Poll: - Livestock - Machinery")
-        elif user_states.get(destination_number) == 'asking_emission_quantity':
-            send_whatsapp_msg(destination_number, "Enter the quantity of emission source (in kg of CO2 equivalent).")
-        elif user_states.get(destination_number) == 'confirming_submission':
-            last_quantity = user_info[destination_number].get('emission_quantity', 'UNKNOWN')
-            send_whatsapp_msg(destination_number, f"Confirm submission: {user_info[destination_number]['emission_source'].capitalize()} - {last_quantity} kg CO2 eq. Correct?")
-        return "Question answered and follow-up question asked."
-    
-    # If the message isn't a question, proceed with the flow
-    # Check if the user has provided their name
-    if 'name' not in user_info.get(destination_number, {}):
-        if message.isalpha() or ' ' in message:
-            user_info[destination_number] = {'name': message}
-            send_whatsapp_msg(destination_number, "Which emission source are you reporting? Poll: - Livestock - Machinery")
-            user_states[destination_number] = 'asking_emission_source'
-            return "Asked for emission source."
-        else:
-            send_whatsapp_msg(destination_number, "Invalid name. Please enter a valid full name.")
-            return "Invalid name provided."
-
-    # Check if the user has provided the emission source
-    elif 'emission_source' not in user_info[destination_number]:
-        if message.lower() in ['livestock', 'machinery']:
-            user_info[destination_number]['emission_source'] = message.lower()
-            send_whatsapp_msg(destination_number, "Enter the quantity of emission source (in kg of CO2 equivalent).")
-            user_states[destination_number] = 'asking_emission_quantity'
-            return "Asked for emission quantity."
-        else:
-            send_whatsapp_msg(destination_number, "Invalid emission source. Please choose between Livestock and Machinery.")
-            return "Invalid emission source provided."
-
-    # Check if the user has provided the emission quantity
-    elif 'emission_quantity' not in user_info[destination_number]:
-        if is_valid_number(message):
-            user_info[destination_number]['emission_quantity'] = message
-            send_whatsapp_msg(destination_number, f"Confirm submission: {user_info[destination_number]['emission_source'].capitalize()} - {message} kg CO2 eq. Correct?")
-            user_states[destination_number] = 'confirming_submission'
-            return "Asked for confirmation of emission quantity."
-        else:
-            send_whatsapp_msg(destination_number, "Invalid quantity. Please enter the quantity of emission source in kg of CO2 equivalent.")
-            return "Invalid emission quantity provided."
-
-    # Check if the user has confirmed the submission
-    elif 'confirmation' not in user_info[destination_number]:
-        if message.lower() in ['yes', 'correct']:
-            user_info[destination_number]['confirmation'] = True
-            send_whatsapp_msg(destination_number, "Thanks! Any other sources to report today?")
-            # Here you can decide what should be the next state
-            return "Asked if there are more sources to report."
-        else:
-            send_whatsapp_msg(destination_number, "Information not confirmed. Please start over.")
-            user_info.pop(destination_number, None)  # Clear the user info to restart the process
-            user_states.pop(destination_number, None)  # Clear the user state
-            return "Restarting the process."
-
-    # After the flow is finished, write the updated user_info and user_states to a JSON file
-    complete_data = {
-        'user_info': user_info,
-        'user_states': user_states
-    }
-    file_name = f'{destination_number}_data_{datetime.now().strftime("%Y%m%d%H%M%S")}.json'
-    write_to_json_file(complete_data, file_name)
-    # Implement the logic to send the JSON file to the user here
-    # For example, you could upload the file to a server and send the download link to the user
-    send_whatsapp_msg(destination_number, f"Your registration data has been saved. You can download it from [download link].")
-    return "Data written to JSON file and download link sent."
-
-# Helper function to validate emission quantity
-def is_valid_emission_quantity(quantity):
-    try:
-        quantity = float(quantity)
-        return quantity >= 0
-    except ValueError:
-        return False
-
-
-def no_text_field(req_data):
-    logging.info("Invalid command.")
-    pass
-
+def create_report_content(user_responses):
+    content = "Farm Report\n\n"
+    for key, answer in user_responses.items():
+        content += f"{key.replace('_', ' ').capitalize()}: {answer}\n"
+    return content
 
 
 
@@ -243,27 +183,35 @@ def send_whatsapp_msg(destination_number, msg):
         'Authorization': vonage_authorization_header
     }
 
-    response = requests.request("POST", endpoint_vonage_message_send, headers=headers, data=payload)
-    print("Response from send_whatsapp_msg:", response.text)  # Print the response for debugging
-    return response.text
+    try:
+        response = requests.post(endpoint_vonage_message_send, headers=headers, data=payload)
+        print("Response from send_whatsapp_msg:", response.text)  # Print the response for debugging
+    except Exception as e:
+        logging.error(f"Error sending WhatsApp message: {str(e)}")
+
 
 
 def chatbot(req_data):
-    question = str(req_data['text']).upper().strip()
+    question = str(req_data['text']).strip()  # Keep the original text case
     recipient = req_data['from']
     openai.api_key = openai_key
-    messages = [
-    {"role": "system", "content": "You are a helpful and kind AI Assistant."},]
-    if question:
+    
+    try:
         send_whatsapp_msg(recipient, "Please wait, communicating to chatgpt...")
-        messages.append({"role": "user", "content": question})
-        chat = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo", messages=messages
+        chat_response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful and kind AI Assistant."},
+                {"role": "user", "content": question}
+            ]
         )
-        reply = chat.choices[0].message.content
-        messages.append({"role": "assistant", "content": reply})
-        logging.info(f"answer recieved: {reply}")
-        return reply
+        reply = chat_response.choices[0].message.content
+        logging.info(f"answer received: {reply}")
+        send_whatsapp_msg(recipient, reply)  # Send the reply directly to the user
+    except Exception as e:
+        logging.error(f"ChatGPT Error: {str(e)}")
+        send_whatsapp_msg(recipient, "Sorry, I'm having trouble understanding that right now.")
+
 
 
 
@@ -291,31 +239,18 @@ def imagebot(req_data):
 def chatgpt_text(req_data):
     question = str(req_data['text']).strip()
     destination_number = req_data['from']
-    logging.info(f"question received: {question}")
+    logging.info(f"Question received: {question}")
 
-    # Check if the user is starting the registration or report flow
-    if question.lower() == "start registration":
-        return start_registration_flow(destination_number)
-    elif question.lower() == "start report":
-        user_states[destination_number] = 'report'
-        return start_report_flow(destination_number)
-
-    # If user is in a specific state, continue that flow
-    if destination_number in user_states:
-        if user_states[destination_number] == 'registration':
-            return continue_registration_flow(destination_number, question)
-        elif user_states[destination_number] == 'report':
-            return continue_report_flow(destination_number, question)
-
+    # Check if the user is initiating or already in the report flow
+    if question.lower() == "start report" or destination_number in user_states:
+        process_message(req_data)  # This will handle both starting and continuing the report flow
     # Handle image requests
     elif question.split()[0].upper() == "IMAGE":
-        imgurl = imagebot(req_data)
-        logging.info(f"sending reply: {imgurl}")
-        send_whatsapp_img(destination_number, imgurl, caption=question)
-        return "Image sent."
-
-    # Handle the joining message
-    elif question.upper() == "JOIN LINT MUSIC":
+        imgurl = imagebot(req_data)  # Make sure this function is properly defined elsewhere in your code
+        logging.info(f"Sending reply: {imgurl}")
+        send_whatsapp_img(destination_number, imgurl, caption=question)  # Make sure this function is properly defined
+    # Handle the joining message or any other predefined commands
+    elif question.upper() == "JOIN DENIM FLAME":
         welcome_msg = (
             "Welcome to ChatGPT powered by Vonage Messaging API.\n"
             "To get more information about using this service, type *help*.\n"
@@ -323,23 +258,24 @@ def chatgpt_text(req_data):
             "We are also working to fix an issue which is duplicate message sending.\n"
             "You can now ask any question."
         )
-        logging.info(f"sending reply: {welcome_msg}")
+        logging.info(f"Sending reply: {welcome_msg}")
         send_whatsapp_msg(destination_number, welcome_msg)
-        return "Welcome message sent."
-
     # If none of the above, assume it is a general question and proceed with ChatGPT
     else:
-        msg = chatbot(req_data)  # Assuming chatbot function handles the communication with ChatGPT
-        logging.info(f"sending reply: {msg}")
-        send_whatsapp_msg(destination_number, msg)
-        return "ChatGPT response sent."
+        chat_response = chatbot(question, destination_number)  # Make sure this function is properly defined
+        logging.info(f"Sending reply: {chat_response}")
+        send_whatsapp_msg(destination_number, chat_response)
 
+# Additional functions such as send_whatsapp_img, imagebot, chatbot need to be defined accordingly.
+
+
+
+# Make sure to update or implement the chatbot, send_whatsapp_img, and imagebot functions accordingly.
     
     
 
 
 command_set = {'CHATGPT_TEXT': chatgpt_text,
-               'no_text_field': no_text_field,
                'HELP': help,
                'HELLO': hello_vonage_ai,
                'SEND': get_advice_vonage_ai}
