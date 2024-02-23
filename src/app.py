@@ -1,7 +1,7 @@
 import json, os, logging
 from dateutil import tz
 from config import *
-from commands import *
+from src import *
 from argparse import ArgumentParser
 from flask import Flask, request, Response, send_file
 
@@ -47,7 +47,7 @@ def receive_message():
    # WhatsApp
    elif channel == "whatsapp":
        func = "CHATGPT_TEXT" if message_type == "text" else func
-       msg = command_set[func](req_data)
+       msg = commands.command_set[func](req_data)
    status_code = Response(status=200)
    return status_code
 

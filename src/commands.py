@@ -1,13 +1,10 @@
 import requests, json
 from   requests.auth import HTTPBasicAuth
-from   config import *
 import openai
 import logging
 from openai.error import RateLimitError
-from config import vonage_sandbox_number, vonage_authorization_header, endpoint_vonage_message_send
+from config import *
 from datetime import datetime
-from toPDF import create_pdf_from_string
-
 
 # Configuration and initial setup
 logging.basicConfig(format='%(message)s', level=logging.INFO)
@@ -93,7 +90,7 @@ def handle_response(destination_number, message):
 def generate_and_send_report(destination_number):
     report_content = create_report_content(user_info[destination_number])
     pdf_filename = f"{destination_number}_report_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
-    create_pdf_from_string(report_content, pdf_filename)
+    toPDF.create_pdf_from_string(report_content, pdf_filename)
     # Send the PDF report or provide a download link
     send_whatsapp_msg(destination_number, "Your report has been generated. Please download it from [link].")
     # Clean up after sending the report
@@ -110,16 +107,16 @@ def create_report_content(user_responses):
 
 def hello_vonage_ai(req_data):
     recipient = req_data['from']['number']
-    url = f"{endpoint_vonage_ai}/init"
-    headers = {'X-Vgai-Key': vonage_ai_key}
-    payload = '{"agent_id" : "' + vonage_ai_agent_id + '"}'
+    url = f"{config.endpoint_vonage_ai}/init"
+    headers = {'X-Vgai-Key': config.vonage_ai_key}
+    payload = '{"agent_id" : "' + config.vonage_ai_agent_id + '"}'
     response = requests.request("POST", url, headers=headers, data=payload)
     resp_data = json.loads(response.text)
     session_data = {recipient: resp_data['session_id']}
-    user_sessions.update(session_data)
-    url = f"{endpoint_vonage_ai}/step"
-    headers = {'X-Vgai-Key': vonage_ai_key}
-    payload = '{"session_id" : "' + user_sessions[recipient] + '"}'
+    config.user_sessions.update(session_data)
+    url = f"{config.endpoint_vonage_ai}/step"
+    headers = {'X-Vgai-Key': config.vonage_ai_key}
+    payload = '{"session_id" : "' + config.user_sessions[recipient] + '"}'
     response = requests.request("POST", url, headers=headers, data=payload)
     resp_data = json.loads(response.text)
     msg = resp_data['flow_path'][1]['message']['text'] + "\n"
@@ -134,9 +131,9 @@ def hello_vonage_ai(req_data):
 def get_advice_vonage_ai(req_data):
     recipient = req_data['from']['number']
     symbol = str(req_data['message']['content']['text']).upper().strip().split()[-1]
-    url = f"{endpoint_vonage_ai}/step"
-    headers = {'X-Vgai-Key': vonage_ai_key}
-    payload = '{"session_id" : "' + user_sessions[recipient] + '",' \
+    url = f"{config.endpoint_vonage_ai}/step"
+    headers = {'X-Vgai-Key': config.vonage_ai_key}
+    payload = '{"session_id" : "' + config.user_sessions[recipient] + '",' \
                                                                '"user_input":"' + symbol + '"}'
     response = requests.request("POST", url, headers=headers, data=payload)
     resp_data = json.loads(response.text)
@@ -157,7 +154,7 @@ def send_whatsapp_img(destination_number, imgurl, caption="image"):
     payload = {
         "message_type": "image",
         "to": destination_number,
-        "from": vonage_sandbox_number,
+        "from": config.vonage_sandbox_number,
         "channel": "whatsapp",
         "image": {
             "url": imgurl,
@@ -166,9 +163,9 @@ def send_whatsapp_img(destination_number, imgurl, caption="image"):
     }
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': vonage_authorization_header
+        'Authorization': config.vonage_authorization_header
     }
-    response = requests.post(endpoint_vonage_message_send, headers=headers, data=json.dumps(payload))
+    response = requests.post(config.endpoint_vonage_message_send, headers=headers, data=json.dumps(payload))
     print(response.text)  # Adding print to debug API response
     return response.text
 
@@ -177,7 +174,7 @@ def send_whatsapp_img(destination_number, imgurl, caption="image"):
 
 def send_whatsapp_msg(destination_number, msg):
     payload = json.dumps({
-        "from": vonage_sandbox_number,
+        "from": config.vonage_sandbox_number,
         "to": destination_number,
         "message_type": "text",
         "text": msg,
@@ -186,11 +183,11 @@ def send_whatsapp_msg(destination_number, msg):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': vonage_authorization_header
+        'Authorization': config.vonage_authorization_header
     }
 
     try:
-        response = requests.post(endpoint_vonage_message_send, headers=headers, data=payload)
+        response = requests.post(config.endpoint_vonage_message_send, headers=headers, data=payload)
         print("Response from send_whatsapp_msg:", response.text)  # Print the response for debugging
     except Exception as e:
         logging.error(f"Error sending WhatsApp message: {str(e)}")
@@ -200,7 +197,7 @@ def send_whatsapp_msg(destination_number, msg):
 def chatbot(req_data, destination_number):
     question = str(req_data['text']).strip()  # Assuming req_data is a dictionary that contains the message text
     recipient = destination_number
-    openai.api_key = openai_key
+    openai.api_key = config.openai_key
     
     try:
         send_whatsapp_msg(recipient, "Please wait, communicating to chatgpt...")
@@ -225,7 +222,7 @@ def chatbot(req_data, destination_number):
 def imagebot(req_data):
     question = str(req_data['text']).upper().strip()
     recipient = req_data['from']
-    openai.api_key = openai_key
+    openai.api_key = config.openai_key
     response = ""
     image_url = ""
     send_whatsapp_msg(recipient, "Please wait, communicating to chatgpt...")
