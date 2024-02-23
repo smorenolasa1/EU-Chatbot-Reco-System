@@ -1,7 +1,7 @@
 import pytest
 from src import *
 
-# test_commands.py
+# test commands
 
 def test_chatgpt_text():
     # Mock request data
@@ -22,7 +22,7 @@ def test_help_command():
     assert response == expected_message
 
 
-# test_utils.py
+# test utilities
 
 def test_is_valid_number():
     assert commands.is_valid_number("100") is True
