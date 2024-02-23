@@ -10,7 +10,6 @@ from toPDF import create_pdf_from_string
 
 
 # Configuration and initial setup
-from config import *
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 user_info = {}
